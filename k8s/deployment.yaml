@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+spec:
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+    spec:
+      containers:
+        - name: config-server
+          image: borissolomonia/dailycodebuffer:config-server
+          ports:
+            - containerPort: 9296
+          env:
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              valueFrom:
+                configMapKeyRef:
+                  name: eureka-cm
+                  key: eureka_service_address
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: config-server-svc
+spec:
+  type: NodePort
+  selector:
+    app: config-server
+  ports:
+    - port: 9296
+      targetPort: 9296
