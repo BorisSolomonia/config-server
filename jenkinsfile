@@ -6,6 +6,8 @@ pipeline {
         ARTIFACT_REGISTRY = 'your-artifact-registry'
         CLUSTER = 'your-cluster-name'
         ZONE = 'your-cluster-zone'
+        GITHUB_TOKEN = credentials('github-access-token')
+        GC_KEY = credentials('GCP')
     }
     tools {
         maven 'maven'
@@ -14,6 +16,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out the code...'
+                echo "Using GitHub Token: ${GITHUB_TOKEN}"
                 checkout([$class: 'GitSCM',
                     branches: [[name: '*/main']],
                     extensions: [],
@@ -24,8 +27,9 @@ pipeline {
         stage('Build and Push Stage') {
             steps {
                 echo 'Building and pushing the Docker image...'
+                echo "Using GCP Key: ${GC_KEY}"
                 withCredentials([file(credentialsId: 'GCP', variable: 'GC_KEY')]) {
-                    sh 'gcloud auth activate-service-account --key-file=${GC_KEY}'
+                    sh 'gcloud auth activate-service-account --key-file=$GC_KEY'
                     sh 'gcloud auth configure-docker asia-south1-docker.pkg.dev'
                     sh 'mvn clean install jib:build -DREPO_URL=${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}'
                 }
@@ -43,6 +47,7 @@ pipeline {
         }
     }
 }
+
 // node {
 //     def repourl = "${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}"
 //     def mvnHome = tool name: 'maven', type: 'maven'
