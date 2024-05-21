@@ -8,7 +8,7 @@ pipeline {
         ZONE = 'your-cluster-zone'
     }
     tools {
-        maven 'maven'
+        maven 'maven' // Assumes you have a Maven tool named 'maven' configured in Jenkins
     }
     stages {
         stage('Checkout') {
@@ -18,7 +18,7 @@ pipeline {
                     checkout([$class: 'GitSCM',
                         branches: [[name: '*/main']],
                         extensions: [],
-                        userRemoteConfigs: [[url: 'https://github.com/borissolomonia/ConfigServer.git', credentialsId: 'github-token']]
+                        userRemoteConfigs: [[url: 'https://borissolomonia:${GITHUB_TOKEN}@github.com/borissolomonia/ConfigServer.git']]
                     ])
                 }
             }
@@ -26,7 +26,7 @@ pipeline {
         stage('Build and Push Stage') {
             steps {
                 echo 'Building and pushing the Docker image...'
-                withCredentials([file(credentialsId: 'gcp', variable: 'GC_KEY')]) {
+                withCredentials([file(credentialsId: 'GCP', variable: 'GC_KEY')]) {
                     sh 'gcloud auth activate-service-account --key-file=${GC_KEY}'
                     sh 'gcloud auth configure-docker asia-south1-docker.pkg.dev'
                     sh 'mvn clean install jib:build -DREPO_URL=${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}'
@@ -45,6 +45,7 @@ pipeline {
         }
     }
 }
+
 
 // node {
 //     def repourl = "${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}"
