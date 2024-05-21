@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+    environment {
+        REGISTRY_URL = 'asia-south1-docker.pkg.dev'
+        PROJECT_ID = 'your-project-id'
+        ARTIFACT_REGISTRY = 'your-artifact-registry'
+        CLUSTER = 'your-cluster-name'
+        ZONE = 'your-cluster-zone'
+    }
+    tools {
+        maven 'maven'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out the code...'
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[credentialsId: 'git', url: 'https://github.com/borissolomonia/ConfigServer.git']]
+                ])
+            }
+        }
+        stage('Build and Push Stage') {
+            steps {
+                echo 'Building and pushing the Docker image...'
+                withCredentials([file(credentialsId: 'gcp', variable: 'GC_KEY')]) {
+                    sh 'gcloud auth activate-service-account --key-file=${GC_KEY}'
+                    sh 'gcloud auth configure-docker asia-south1-docker.pkg.dev'
+                    sh 'mvn clean install jib:build -DREPO_URL=${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}'
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying to Kubernetes...'
+                sh "sed -i 's|IMAGE_URL|${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}|g' k8s/deployment.yaml"
+                kubernetesDeploy(
+                    configs: 'k8s/deployment.yaml',
+                    kubeconfigId: 'your-kubeconfig-id'
+                )
+            }
+        }
+    }
+}
+// node {
+//     def repourl = "${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}"
+//     def mvnHome = tool name: 'maven', type: 'maven'
+//     def mvnCMD = "${mvnHome}/bin/mvn"
+//     stage('Checkout'){
+//         checkout([$class: 'GitSCM',
+//          branches: [[name: '*/main']],
+//           extensions: [], 
+//           userRemoteConfigs: [[credentialsId: 'git', url: 'hrttps://github.com/borissolomonia/ConfigServer.git']]])
+//     }
+//     stage('Build and Push Stage'){
+//         withCredentials([file(credentialsId: 'gcp', variable:'GC_KEY')]){
+//             sh("gcloud auth activate-service-account --key-file=${GC_KEY}")
+//             sh 'gcloud auth configure-docker asia-south1-docker.pkg.dev'
+//             sh "${mvnCMD} clean install jib:build -DREPO_URL=${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}"
+//         }
+
+//     }
+//     stage('Deploy'){
+//         sh "sed -i 's|IMAGE_URL|${repourl}|g' k8s/deployment.yaml"    
+//         step([$class: 'KubernetesEngineBuilder',
+//             projectId: env.PROJECT_ID,
+//             clusterName: env.CLUSTER,
+//             location: env.ZONE,
+//             manifestPattern: 'k8s/deployment.yaml',
+//             credentialsId: env.PROJECT_ID,
+//             verifyDeployments: true])    
+//     }
+// }
