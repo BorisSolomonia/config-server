@@ -24,7 +24,7 @@ pipeline {
         stage('Build and Push Stage') {
             steps {
                 echo 'Building and pushing the Docker image...'
-                withCredentials([file(credentialsId: 'gcp', variable: 'GC_KEY')]) {
+                withCredentials([file(credentialsId: 'GCP', variable: 'GC_KEY')]) {
                     sh 'gcloud auth activate-service-account --key-file=${GC_KEY}'
                     sh 'gcloud auth configure-docker asia-south1-docker.pkg.dev'
                     sh 'mvn clean install jib:build -DREPO_URL=${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}'
@@ -37,7 +37,7 @@ pipeline {
                 sh "sed -i 's|IMAGE_URL|${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}|g' k8s/deployment.yaml"
                 kubernetesDeploy(
                     configs: 'k8s/deployment.yaml',
-                    kubeconfigId: 'your-kubeconfig-id'
+                    kubeconfigId: 'GooglePrivateKey'
                 )
             }
         }
