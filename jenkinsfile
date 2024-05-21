@@ -8,27 +8,23 @@ pipeline {
         ZONE = 'your-cluster-zone'
     }
     tools {
-        maven 'maven' // Assumes you have a Maven tool named 'maven' configured in Jenkins
+        maven 'maven'
     }
     stages {
         stage('Checkout') {
             steps {
                 echo 'Checking out the code...'
-                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-                    sh 'echo https://${GITHUB_TOKEN}@github.com > ~/.git-credentials'
-                    sh 'git config --global credential.helper store'
-                    checkout([$class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        extensions: [],
-                        userRemoteConfigs: [[url: 'https://github.com/borissolomonia/ConfigServer.git', credentialsId: 'github-token']]
-                    ])
-                }
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    extensions: [],
+                    userRemoteConfigs: [[credentialsId: 'git', url: 'https://github.com/borissolomonia/ConfigServer.git']]
+                ])
             }
         }
         stage('Build and Push Stage') {
             steps {
                 echo 'Building and pushing the Docker image...'
-                withCredentials([file(credentialsId: 'GCP', variable: 'GC_KEY')]) {
+                withCredentials([file(credentialsId: 'gcp', variable: 'GC_KEY')]) {
                     sh 'gcloud auth activate-service-account --key-file=${GC_KEY}'
                     sh 'gcloud auth configure-docker asia-south1-docker.pkg.dev'
                     sh 'mvn clean install jib:build -DREPO_URL=${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}'
@@ -47,9 +43,6 @@ pipeline {
         }
     }
 }
-
-
-
 // node {
 //     def repourl = "${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}"
 //     def mvnHome = tool name: 'maven', type: 'maven'
