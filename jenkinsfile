@@ -14,11 +14,13 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out the code...'
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    extensions: [],
-                    userRemoteConfigs: [[credentialsId: 'github-token', url: 'https://github.com/borissolomonia/ConfigServer.git']]
-                ])
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        extensions: [],
+                        userRemoteConfigs: [[url: 'https://github.com/borissolomonia/ConfigServer.git', credentialsId: 'github-token']]
+                    ])
+                }
             }
         }
         stage('Build and Push Stage') {
