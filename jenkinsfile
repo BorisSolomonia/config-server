@@ -1,14 +1,14 @@
 pipeline {
     agent any
-    environment {
-        REGISTRY_URL = 'asia-south1-docker.pkg.dev'
-        PROJECT_ID = 'your-project-id'
-        ARTIFACT_REGISTRY = 'your-artifact-registry'
-        CLUSTER = 'your-cluster-name'
-        ZONE = 'your-cluster-zone'
-        GITHUB_TOKEN = credentials('github-access-token')
-        GC_KEY = credentials('GCP')
-    }
+    // environment {
+    //     REGISTRY_URL = 'asia-south1-docker.pkg.dev'
+    //     PROJECT_ID = 'your-project-id'
+    //     ARTIFACT_REGISTRY = 'your-artifact-registry'
+    //     CLUSTER = 'your-cluster-name'
+    //     ZONE = 'your-cluster-zone'
+    //     GITHUB_TOKEN = credentials('github-access-token')
+    //     GC_KEY = credentials('GCP')
+    // }
     tools {
         maven 'maven'
     }
