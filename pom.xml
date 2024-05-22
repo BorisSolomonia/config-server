@@ -122,8 +122,47 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
-
 	<build>
+    	<plugins>
+        	<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+            	</configuration>
+        	</plugin>
+        	<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>3.4.2</version> <!-- Ensure the version is specified -->
+				<configuration>
+					<from>
+						<image>openjdk:17</image>
+					</from>
+					<to>
+						<image>${REPO_URL}/configserver</image>
+						<tags>${project.version}</tags>
+					</to>
+					<container>
+						<mainClass>com.example.Main</mainClass> <!-- Ensure the correct main class is specified -->
+					</container>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+    	</plugins>
+	</build>
+
+	<!-- <build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -157,6 +196,6 @@
 				</configuration>
 			</plugin>
 		</plugins>
-	</build>
+	</build> -->
 
 </project>
