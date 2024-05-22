@@ -2,12 +2,14 @@ pipeline {
     agent any
     environment {
         REGISTRY_URL = 'asia-south1-docker.pkg.dev'
-        // PROJECT_ID = 'your-project-id'
-        // ARTIFACT_REGISTRY = 'your-artifact-registry'
-        // CLUSTER = 'your-cluster-name'
-        // ZONE = 'your-cluster-zone'
+        // PROJECT_ID = 'robust-helix-423713-a4'
+        // ARTIFACT_REGISTRY = 'dailycodebuffer'
+        // CLUSTER = 'dailycodebuffer-cluster-1'
+        // ZONE = 'us-central1-a'  // Update with the correct zone
         GITHUB_TOKEN = credentials('github-access-token')
         GC_KEY = credentials('GCP')
+        KUBECONFIG = credentials('kubeconfig')  // Reference the kubeconfig credential
+        REPO_URL = "${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}/configserver"
     }
     tools {
         maven 'maven'
@@ -16,37 +18,38 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checking out the code...'
-                echo "Using GitHub Token: ${GITHUB_TOKEN}"
-                checkout([$class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    extensions: [],
-                    userRemoteConfigs: [[credentialsId: 'github-access-token', url: 'https://github.com/borissolomonia/config-server.git']]
-                ])
+                withCredentials([string(credentialsId: 'github-access-token', variable: 'GITHUB_TOKEN')]) {
+                    echo "Using GitHub Token: ${GITHUB_TOKEN}"
+                    checkout([$class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        extensions: [],
+                        userRemoteConfigs: [[credentialsId: 'github-access-token', url: 'https://github.com/borissolomonia/ConfigServer.git']]
+                    ])
+                }
             }
         }
         stage('Build and Push Stage') {
             steps {
                 echo 'Building and pushing the Docker image...'
-                echo "Using GCP Key: ${GC_KEY}"
                 withCredentials([file(credentialsId: 'GCP', variable: 'GC_KEY')]) {
                     sh 'gcloud auth activate-service-account --key-file=$GC_KEY'
-                    sh 'gcloud auth configure-docker asia-south1-docker.pkg.dev'
-                    sh 'mvn clean install jib:build -DREPO_URL=${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}'
+                    sh 'gcloud auth configure-docker ${REGISTRY_URL}'
+                    sh 'mvn clean install jib:build -DREPO_URL=${REPO_URL}'
                 }
             }
         }
         stage('Deploy') {
             steps {
                 echo 'Deploying to Kubernetes...'
-                sh "sed -i 's|IMAGE_URL|${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}|g' k8s/deployment.yaml"
-                kubernetesDeploy(
-                    configs: 'k8s/deployment.yaml',
-                    kubeconfigId: 'GooglePrivateKey'
-                )
+                sh "sed -i 's|IMAGE_URL|${REPO_URL}|g' k8s/deployment.yaml"
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh 'kubectl apply -f k8s/deployment.yaml --kubeconfig $KUBECONFIG'
+                }
             }
         }
     }
 }
+
 
 // node {
 //     def repourl = "${REGISTRY_URL}/${PROJECT_ID}/${ARTIFACT_REGISTRY}"
